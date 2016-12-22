@@ -1,0 +1,75 @@
+---
+title: "Analyzing Prosper loan data"
+output: html_notebook
+---
+
+#Motivation
+I would like to come up with an investing strategy for [Prosper](http://www.prosper.com), a peer-to-peer lending platform. Unlike [Lending Club](https://help.lendingclub.com/hc/en-us/articles/216092957-What-are-the-current-State-and-Financial-Suitability-conditions-), [Prosper](https://www.prosper.com/plp/legal/financial-suitability/) has no gross income or net worth requirements for the state of Florida.
+
+#Data Source
+The data was offered by [Udacity](http://www.udacity.com) for a project in one of their courses. You can find it [here](https://docs.google.com/document/d/1qEcwltBMlRYZT-l699-71TzInWfk4W9q5rTCSvDVMpc/pub?embedded=true) or [here](https://github.com/joashxu/prosper-loan-data/tree/master/dataset). Although I did not take the course myself, I find the data very useful, indeed, and am very grateful to Udacity for making it available!
+
+#Data exploration
+Going through the dataset dictionary [here](https://github.com/joashxu/prosper-loan-data/tree/master/dataset) or [here](https://docs.google.com/spreadsheets/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit#gid=0), I want to better acquaint myself with the data, since I have never either borrowed or lent on a peer-to-peer lending platform.
+<br/>  
+Start by loading the data:
+```{r}
+loans <- read.csv("prosperLoanData.csv")
+cat("We have", dim(loans)[1], "observations of", dim(loans)[2], "variables.")
+```
+<br/>  
+What is the range of loan values? Taking a look at the summary of LoanOriginalAmount variable:
+```{r}
+summary(loans$LoanOriginalAmount)
+```
+<br/>  
+we see that 50% of the loans are between $4,000 and $12,000. We can plot a histogram, too:
+```{r}
+library(ggplot2)
+loan_amount_hist <- ggplot(loans, aes(LoanOriginalAmount)) + geom_histogram(binwidth=750, fill="#E69F00", colour="black") + xlim(2500,30000)
+loan_amount_hist <- loan_amount_hist + xlab("Loan amounts (USD)") + ylab("Number of loans") + ggtitle("Histogram of loan amounts")
+loans_median_amount <- median(loans$LoanOriginalAmount)
+loan_amount_hist <- loan_amount_hist + geom_vline(xintercept=loans_median_amount)
+#loan_amount_hist <- loan_amount_hist + annotate("text", x = loans_median_amount + 4500, y = 22000, label = paste("Median =",loans_median_amount, "USD"))
+loan_amount_hist
+```
+```{r}
+loan_rate_hist <- ggplot(loans, aes(BorrowerRate*100.0)) + geom_histogram(binwidth=2.0, fill="#E69F00", colour="black")
+loan_rate_hist <- loan_rate_hist + xlab("Interest Rates (%)") + ylab("Number of loans") + ggtitle("Histogram of interest rates")
+loan_median_rate <- 100.0 * median(loans$BorrowerRate)
+loan_rate_hist <- loan_rate_hist + geom_vline(xintercept=loan_median_rate)
+loan_rate_hist <- loan_rate_hist + annotate("text", x = loan_median_rate + 6, y = 11000, label = paste("Median =",loan_median_rate, "%"))
+loan_rate_hist
+```
+We have 591 missing values (NA's) in the columns CreditScoreRangeLower and CreditScoreRangeUpper. Even though they represent a tiny fraction of the 113,000+ observations, we don't want to throw them out. We will impute the missing values using the medians of the columns.
+```{r}
+#Replacing 591 NA's in columns CreditScoreRangeLower and CreditScoreRangeUpper
+#with the medians.
+loans_CreditScoreRangeLower_median <- median(loans$CreditScoreRangeLower, na.rm=T)
+loans_CreditScoreRangeUpper_median <- median(loans$CreditScoreRangeUpper, na.rm=T)
+loans$CreditScoreRangeLower[is.na(loans$CreditScoreRangeLower)] <- loans_CreditScoreRangeLower_median
+loans$CreditScoreRangeUpper[is.na(loans$CreditScoreRangeUpper)] <- loans_CreditScoreRangeUpper_median
+loan_credit_scores_hist <- ggplot(loans, aes((CreditScoreRangeLower + CreditScoreRangeUpper)/2.0)) + geom_histogram(binwidth = 20, fill="#E69F00", colour="black") + xlim(400,900)
+loan_credit_scores_hist <- loan_credit_scores_hist + xlab("Credit scores") + ylab("Number of loans") + ggtitle("Histogram of credit scores")
+loan_median_credit_score <- median((loans$CreditScoreRangeLower + loans$CreditScoreRangeLower) / 2.0)
+loan_credit_scores_hist <- loan_credit_scores_hist + geom_vline(xintercept=loan_median_credit_score)
+loan_credit_scores_hist <- loan_credit_scores_hist + annotate("text", x = loan_median_credit_score + 90, y = 18000, label = paste("Median credit score =",loan_median_credit_score))
+loan_credit_scores_hist
+```
+
+
+
+
+# References
+
+1. ***R Notebooks***. Retrieved from [http://rmarkdown.rstudio.com](http://rmarkdown.rstudio.com/r_notebooks.html)
+
+2. ***Prosper loan data***. Retrieved from [https://docs.google.com](https://docs.google.com/document/d/1qEcwltBMlRYZT-l699-71TzInWfk4W9q5rTCSvDVMpc/pub?embedded=true)
+
+3. ***Prosper loan data - variable definitions***. Retrieved from [https://docs.google.com](https://docs.google.com/spreadsheets/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit#gid=0)
+
+4. ***Lending Club State and Financial Suitability conditions***. Retrieved from [https://help.lendingclub.com](https://help.lendingclub.com/hc/en-us/articles/216092957-What-are-the-current-State-and-Financial-Suitability-conditions-)
+
+5. ***Prosper State Financial Suitability Requirements***. Retrieved from [https://www.prosper.com](https://www.prosper.com/plp/legal/financial-suitability/)
+
+6. Chang, Winston. ***Cookbook for R***. Sebastopol: O'Reilly Media, 2013. Retrieved from http://www.cookbook-r.com/
