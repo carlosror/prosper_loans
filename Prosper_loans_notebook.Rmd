@@ -26,19 +26,19 @@ summary(loans$LoanOriginalAmount)
 we see that 50% of the loans are between $4,000 and $12,000. We can plot a histogram, too:
 ```{r}
 library(ggplot2)
-loan_amount_hist <- ggplot(loans, aes(LoanOriginalAmount)) + geom_histogram(binwidth=750, fill="#E69F00", colour="black") + xlim(2500,30000)
-loan_amount_hist <- loan_amount_hist + xlab("Loan amounts (USD)") + ylab("Number of loans") + ggtitle("Histogram of loan amounts")
+loan_amount_hist <- ggplot(loans, aes(LoanOriginalAmount)) + geom_histogram(binwidth=750, fill="#E69F00", colour="black") + xlim(2500,25000)
+loan_amount_hist <- loan_amount_hist + xlab("Amount borrowed (USD)") + ylab("Number of loans") + ggtitle("Histogram of loan amounts")
 loans_median_amount <- median(loans$LoanOriginalAmount)
 loan_amount_hist <- loan_amount_hist + geom_vline(xintercept=loans_median_amount)
-#loan_amount_hist <- loan_amount_hist + annotate("text", x = loans_median_amount + 4500, y = 22000, label = paste("Median =",loans_median_amount, "USD"))
+loan_amount_hist <- loan_amount_hist + annotate("text", x = loans_median_amount + 3500, y = 17000, label = paste("Median =",loans_median_amount, "USD"))
 loan_amount_hist
 ```
 ```{r}
-loan_rate_hist <- ggplot(loans, aes(BorrowerRate*100.0)) + geom_histogram(binwidth=2.0, fill="#E69F00", colour="black")
+loan_rate_hist <- ggplot(loans, aes(BorrowerRate*100.0)) + geom_histogram(binwidth=1.0, fill="#E69F00", colour="black") + xlim(5.0,35.0)
 loan_rate_hist <- loan_rate_hist + xlab("Interest Rates (%)") + ylab("Number of loans") + ggtitle("Histogram of interest rates")
 loan_median_rate <- 100.0 * median(loans$BorrowerRate)
 loan_rate_hist <- loan_rate_hist + geom_vline(xintercept=loan_median_rate)
-loan_rate_hist <- loan_rate_hist + annotate("text", x = loan_median_rate + 6, y = 11000, label = paste("Median =",loan_median_rate, "%"))
+loan_rate_hist <- loan_rate_hist + annotate("text", x = loan_median_rate + 4, y = 6700, label = paste("Median =",loan_median_rate, "%"))
 loan_rate_hist
 ```
 We have 591 missing values (NA's) in the columns CreditScoreRangeLower and CreditScoreRangeUpper. Even though they represent a tiny fraction of the 113,000+ observations, we don't want to throw them out. We will impute the missing values using the medians of the columns.
@@ -55,6 +55,34 @@ loan_median_credit_score <- median((loans$CreditScoreRangeLower + loans$CreditSc
 loan_credit_scores_hist <- loan_credit_scores_hist + geom_vline(xintercept=loan_median_credit_score)
 loan_credit_scores_hist <- loan_credit_scores_hist + annotate("text", x = loan_median_credit_score + 90, y = 18000, label = paste("Median credit score =",loan_median_credit_score))
 loan_credit_scores_hist
+```
+<br/>  
+Plotting income ranges
+
+```{r}
+loan_income_hist <- ggplot(loans, aes(StatedMonthlyIncome)) + geom_histogram(binwidth=500, fill="#E69F00", colour="black") + xlim(0,20000)
+loan_income_hist <- loan_income_hist + xlab("Stated Monthly Income (USD)") + ylab("Number of loans") + ggtitle("Histogram of monthy incomes")
+loan_median_monthly_income <- round(median(loans$StatedMonthlyIncome))
+loan_income_hist <- loan_income_hist + geom_vline(xintercept=loan_median_monthly_income)
+loan_income_hist <- loan_income_hist + annotate("text", x = loan_median_monthly_income + 2700, y = 10000, label = paste("Median =",loan_median_monthly_income, "USD"))
+loan_income_hist
+```
+<br/>  
+Plotting loan terms (lengths)
+```{r}
+# Convert the Term column to factor
+loans$Term <- as.factor(loans$Term)
+loans_terms_barplot <- ggplot(loans, aes(Term)) + geom_bar(fill="#E69F00", colour="black")
+loans_terms_barplot <- loans_terms_barplot + xlab("Loan term in months") + ylab("Number of loans") + ggtitle("Barplot of loan terms")
+loans_terms_barplot
+```
+Loan status
+```{r}
+loans$LoanStatus <- as.character(loans$LoanStatus)
+loans$LoanStatus[loans$LoanStatus == "Cancelled" | loans$LoanStatus == "Chargedoff" | loans$LoanStatus == "Defaulted" | loans$LoanStatus == "Chargedoff" | grepl("Past Due", loans$LoanStatus)] <- "0"
+loans$LoanStatus[loans$LoanStatus == "Completed" | loans$LoanStatus == "Current" | loans$LoanStatus == "FinalPaymentInProgress" ] <- "1"
+loans$LoanStatus <- as.factor(loans$LoanStatus)
+table(loans$LoanStatus)
 ```
 
 
@@ -73,3 +101,7 @@ loan_credit_scores_hist
 5. ***Prosper State Financial Suitability Requirements***. Retrieved from [https://www.prosper.com](https://www.prosper.com/plp/legal/financial-suitability/)
 
 6. Chang, Winston. ***Cookbook for R***. Sebastopol: O'Reilly Media, 2013. Retrieved from http://www.cookbook-r.com/
+
+7. MaikelS. ***Set NA to 0 in R***. Retrieved from [http://stackoverflow.com](http://stackoverflow.com/questions/10139284/set-na-to-0-in-r).
+
+8. mike and smu. ***Test if characters in string in R***. Retrieved from [http://stackoverflow.com](http://stackoverflow.com/questions/10128617/test-if-characters-in-string-in-r).
