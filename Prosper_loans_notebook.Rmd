@@ -47,6 +47,8 @@ We have 591 missing values (NA's) in the columns CreditScoreRangeLower and Credi
 #with the medians.
 loans_CreditScoreRangeLower_median <- median(loans$CreditScoreRangeLower, na.rm=T)
 loans_CreditScoreRangeUpper_median <- median(loans$CreditScoreRangeUpper, na.rm=T)
+#Replacing NA's with something else
+#http://stackoverflow.com/questions/10139284/set-na-to-0-in-r
 loans$CreditScoreRangeLower[is.na(loans$CreditScoreRangeLower)] <- loans_CreditScoreRangeLower_median
 loans$CreditScoreRangeUpper[is.na(loans$CreditScoreRangeUpper)] <- loans_CreditScoreRangeUpper_median
 loan_credit_scores_hist <- ggplot(loans, aes((CreditScoreRangeLower + CreditScoreRangeUpper)/2.0)) + geom_histogram(binwidth = 20, fill="#E69F00", colour="black") + xlim(400,900)
@@ -78,7 +80,11 @@ loans_terms_barplot
 ```
 Loan status
 ```{r}
+#Convert to character and back to factor
+#http://programming-r-pro-bro.blogspot.com/2013/04/editingadding-factor-levels-in-r.html
 loans$LoanStatus <- as.character(loans$LoanStatus)
+#Usage of grepl to test if sub-string in string
+#http://stackoverflow.com/questions/10128617/test-if-characters-in-string-in-r
 loans$LoanStatus[loans$LoanStatus == "Cancelled" | loans$LoanStatus == "Chargedoff" | loans$LoanStatus == "Defaulted" | loans$LoanStatus == "Chargedoff" | grepl("Past Due", loans$LoanStatus)] <- "0"
 loans$LoanStatus[loans$LoanStatus == "Completed" | loans$LoanStatus == "Current" | loans$LoanStatus == "FinalPaymentInProgress" ] <- "1"
 loans$LoanStatus <- as.factor(loans$LoanStatus)
@@ -105,3 +111,5 @@ table(loans$LoanStatus)
 7. MaikelS. ***Set NA to 0 in R***. Retrieved from [http://stackoverflow.com](http://stackoverflow.com/questions/10139284/set-na-to-0-in-r).
 
 8. mike and smu. ***Test if characters in string in R***. Retrieved from [http://stackoverflow.com](http://stackoverflow.com/questions/10128617/test-if-characters-in-string-in-r).
+
+9. Shreyes. ***Editing/Adding factor levels in R***. Retrieved from [http://programming-r-pro-bro.blogspot.com](http://programming-r-pro-bro.blogspot.com/2013/04/editingadding-factor-levels-in-r.html)
