@@ -17,6 +17,14 @@ Start by loading the data:
 loans <- read.csv("prosperLoanData.csv")
 cat("We have", dim(loans)[1], "observations of", dim(loans)[2], "variables.")
 ```
+```{r}
+library(mice)
+set.seed(123)
+vars.for.imputation <- c("Term", "BorrowerRate", "CreditScoreRangeLower", "DebtToIncomeRatio", "EmploymentStatusDuration", "IsBorrowerHomeowner", "CurrentCreditLines", "OpenCreditLines", "TotalCreditLinespast7years", "OpenRevolvingAccounts", "OpenRevolvingMonthlyPayment", "InquiriesLast6Months", "TotalInquiries", "CurrentDelinquencies", "AmountDelinquent", "DelinquenciesLast7Years", "PublicRecordsLast10Years", "PublicRecordsLast12Months", "RevolvingCreditBalance", "BankcardUtilization", "AvailableBankcardCredit", "IncomeVerifiable", "StatedMonthlyIncome")
+imputed <- complete(mice(loans[vars.for.imputation], method = "norm"))
+loans[vars.for.imputation] <- imputed
+```
+
 <br/>  
 What is the range of loan values? Taking a look at the summary of LoanOriginalAmount variable:
 ```{r}
@@ -89,6 +97,16 @@ loans$LoanStatus[loans$LoanStatus == "Cancelled" | loans$LoanStatus == "Chargedo
 loans$LoanStatus[loans$LoanStatus == "Completed" | loans$LoanStatus == "Current" | loans$LoanStatus == "FinalPaymentInProgress" ] <- "1"
 loans$LoanStatus <- as.factor(loans$LoanStatus)
 table(loans$LoanStatus)
+```
+```{r}
+predictors <- colnames(loans)
+predictors <- predictors[predictors != "LoanStatus"]
+for (predictor in c("Term", "BorrowerRate", "CreditScoreRangeLower", "DebtToIncomeRatio", "EmploymentStatusDuration", "IsBorrowerHomeowner", "CurrentCreditLines", "OpenCreditLines", "TotalCreditLinespast7years", "OpenRevolvingAccounts", "OpenRevolvingMonthlyPayment", "InquiriesLast6Months", "TotalInquiries", "CurrentDelinquencies", "AmountDelinquent", "DelinquenciesLast7Years", "PublicRecordsLast10Years", "PublicRecordsLast12Months", "RevolvingCreditBalance", "BankcardUtilization", "AvailableBankcardCredit", "IncomeVerifiable", "StatedMonthlyIncome")) {
+  log_model <- glm(loans$LoanStatus ~ loans[predictor][,1], family = binomial)
+  cat(paste("Significance level of predictor", predictor, summary(log_model)$coefficients[2,4], "\n"))
+}
+#loans_log_model_1 <- glm(LoanStatus ~ CreditScoreRangeLower, data=loans)
+#summary(loans_log_model_1)
 ```
 
 
