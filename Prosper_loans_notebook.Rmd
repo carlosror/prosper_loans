@@ -1,5 +1,5 @@
 ---
-title: "Analyzing Prosper loan data"
+title: "Predicting the performance of Prosper loans using logistic regression"
 output: html_notebook
 ---
 
