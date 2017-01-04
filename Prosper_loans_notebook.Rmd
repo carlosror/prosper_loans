@@ -13,104 +13,533 @@ The data was offered by [Udacity](http://www.udacity.com) for a project in one o
 Going through the dataset dictionary [here](https://github.com/joashxu/prosper-loan-data/tree/master/dataset) or [here](https://docs.google.com/spreadsheets/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit#gid=0), I want to better acquaint myself with the data, since I have never either borrowed or lent on a peer-to-peer lending platform.
 <br/>  
 Start by loading the data:
-```{r}
+```{r, message=FALSE, warning=FALSE}
 loans <- read.csv("prosperLoanData.csv")
+```
+How large is our dataset?
+```{r}
 cat("We have", dim(loans)[1], "observations of", dim(loans)[2], "variables.")
 ```
-```{r}
-library(mice)
-set.seed(123)
-vars.for.imputation <- c("Term", "BorrowerRate", "CreditScoreRangeLower", "DebtToIncomeRatio", "EmploymentStatusDuration", "IsBorrowerHomeowner", "CurrentCreditLines", "OpenCreditLines", "TotalCreditLinespast7years", "OpenRevolvingAccounts", "OpenRevolvingMonthlyPayment", "InquiriesLast6Months", "TotalInquiries", "CurrentDelinquencies", "AmountDelinquent", "DelinquenciesLast7Years", "PublicRecordsLast10Years", "PublicRecordsLast12Months", "RevolvingCreditBalance", "BankcardUtilization", "AvailableBankcardCredit", "IncomeVerifiable", "StatedMonthlyIncome")
-imputed <- complete(mice(loans[vars.for.imputation], method = "norm"))
-loans[vars.for.imputation] <- imputed
-```
 
-<br/>  
-What is the range of loan values? Taking a look at the summary of LoanOriginalAmount variable:
-```{r}
-summary(loans$LoanOriginalAmount)
-```
-<br/>  
-we see that 50% of the loans are between $4,000 and $12,000. We can plot a histogram, too:
-```{r}
+We can use histograms and barplots to get an idea of how some of the key variables are distributed. The following code generates the histogram for the loan amounts.
+
+```{r, message=FALSE, warning=FALSE}
 library(ggplot2)
+theme_set(theme_gray(base_size = 10))
 loan_amount_hist <- ggplot(loans, aes(LoanOriginalAmount)) + geom_histogram(binwidth=750, fill="#E69F00", colour="black") + xlim(2500,25000)
 loan_amount_hist <- loan_amount_hist + xlab("Amount borrowed (USD)") + ylab("Number of loans") + ggtitle("Histogram of loan amounts")
 loans_median_amount <- median(loans$LoanOriginalAmount)
 loan_amount_hist <- loan_amount_hist + geom_vline(xintercept=loans_median_amount)
-loan_amount_hist <- loan_amount_hist + annotate("text", x = loans_median_amount + 3500, y = 17000, label = paste("Median =",loans_median_amount, "USD"))
-loan_amount_hist
+loan_amount_hist <- loan_amount_hist + annotate("text", x = loans_median_amount + 4800, y = 17000, label = paste("Median =",loans_median_amount, "USD"), size=3)
 ```
-```{r}
+ We can do similarly for other variables. I will not show the code here as it's repetitive.
+```{r, include=FALSE}
 loan_rate_hist <- ggplot(loans, aes(BorrowerRate*100.0)) + geom_histogram(binwidth=1.0, fill="#E69F00", colour="black") + xlim(5.0,35.0)
 loan_rate_hist <- loan_rate_hist + xlab("Interest Rates (%)") + ylab("Number of loans") + ggtitle("Histogram of interest rates")
 loan_median_rate <- 100.0 * median(loans$BorrowerRate)
 loan_rate_hist <- loan_rate_hist + geom_vline(xintercept=loan_median_rate)
-loan_rate_hist <- loan_rate_hist + annotate("text", x = loan_median_rate + 4, y = 6700, label = paste("Median =",loan_median_rate, "%"))
-loan_rate_hist
+loan_rate_hist <- loan_rate_hist + annotate("text", x = loan_median_rate + 5.5, y = 6700, label = paste("Median =",loan_median_rate, "%"), size = 3)
 ```
-We have 591 missing values (NA's) in the columns CreditScoreRangeLower and CreditScoreRangeUpper. Even though they represent a tiny fraction of the 113,000+ observations, we don't want to throw them out. We will impute the missing values using the medians of the columns.
-```{r}
-#Replacing 591 NA's in columns CreditScoreRangeLower and CreditScoreRangeUpper
-#with the medians.
-loans_CreditScoreRangeLower_median <- median(loans$CreditScoreRangeLower, na.rm=T)
-loans_CreditScoreRangeUpper_median <- median(loans$CreditScoreRangeUpper, na.rm=T)
-#Replacing NA's with something else
-#http://stackoverflow.com/questions/10139284/set-na-to-0-in-r
-loans$CreditScoreRangeLower[is.na(loans$CreditScoreRangeLower)] <- loans_CreditScoreRangeLower_median
-loans$CreditScoreRangeUpper[is.na(loans$CreditScoreRangeUpper)] <- loans_CreditScoreRangeUpper_median
-loan_credit_scores_hist <- ggplot(loans, aes((CreditScoreRangeLower + CreditScoreRangeUpper)/2.0)) + geom_histogram(binwidth = 20, fill="#E69F00", colour="black") + xlim(400,900)
-loan_credit_scores_hist <- loan_credit_scores_hist + xlab("Credit scores") + ylab("Number of loans") + ggtitle("Histogram of credit scores")
-loan_median_credit_score <- median((loans$CreditScoreRangeLower + loans$CreditScoreRangeLower) / 2.0)
-loan_credit_scores_hist <- loan_credit_scores_hist + geom_vline(xintercept=loan_median_credit_score)
-loan_credit_scores_hist <- loan_credit_scores_hist + annotate("text", x = loan_median_credit_score + 90, y = 18000, label = paste("Median credit score =",loan_median_credit_score))
-loan_credit_scores_hist
-```
-<br/>  
-Plotting income ranges
 
-```{r}
+```{r, include=FALSE}
+loan_credit_scores_hist <- ggplot(loans, aes(CreditScoreRangeLower)) + geom_histogram(binwidth = 20, fill="#E69F00", colour="black") + xlim(400,900)
+loan_credit_scores_hist <- loan_credit_scores_hist + xlab("Credit scores") + ylab("Number of loans") + ggtitle("Histogram of credit scores")
+loan_median_credit_score <- median(loans$CreditScoreRangeLower, na.rm=T)
+loan_credit_scores_hist <- loan_credit_scores_hist + geom_vline(xintercept=loan_median_credit_score)
+loan_credit_scores_hist <- loan_credit_scores_hist + annotate("text", x = loan_median_credit_score + 80, y = 18000, label = paste("Median =",loan_median_credit_score), size = 3)
+```
+
+```{r, include=FALSE}
 loan_income_hist <- ggplot(loans, aes(StatedMonthlyIncome)) + geom_histogram(binwidth=500, fill="#E69F00", colour="black") + xlim(0,20000)
 loan_income_hist <- loan_income_hist + xlab("Stated Monthly Income (USD)") + ylab("Number of loans") + ggtitle("Histogram of monthy incomes")
 loan_median_monthly_income <- round(median(loans$StatedMonthlyIncome))
 loan_income_hist <- loan_income_hist + geom_vline(xintercept=loan_median_monthly_income)
-loan_income_hist <- loan_income_hist + annotate("text", x = loan_median_monthly_income + 2700, y = 10000, label = paste("Median =",loan_median_monthly_income, "USD"))
-loan_income_hist
+loan_income_hist <- loan_income_hist + annotate("text", x = loan_median_monthly_income + 4200, y = 12000, label = paste("Median =",loan_median_monthly_income, "USD"), size=3)
 ```
-<br/>  
-Plotting loan terms (lengths)
-```{r}
+
+```{r, include=FALSE}
 # Convert the Term column to factor
 loans$Term <- as.factor(loans$Term)
 loans_terms_barplot <- ggplot(loans, aes(Term)) + geom_bar(fill="#E69F00", colour="black")
 loans_terms_barplot <- loans_terms_barplot + xlab("Loan term in months") + ylab("Number of loans") + ggtitle("Barplot of loan terms")
-loans_terms_barplot
 ```
-Loan status
+
+```{r, include=FALSE}
+# Convert the Term column to factor
+home_ownership_barplot <- ggplot(loans, aes(IsBorrowerHomeowner)) + geom_bar(fill="#E69F00", colour="black")
+home_ownership_barplot <- home_ownership_barplot + xlab("Borrower owns home?") + ylab("Number of loans") + ggtitle("Barplot of home-ownership")
+```
+
+```{r, include=FALSE}
+current_delinq_hist <- ggplot(loans, aes(CurrentDelinquencies)) + geom_histogram(binwidth=1.0, fill="#E69F00", colour="black") + xlim(-1,5)
+current_delinq_hist <- current_delinq_hist + xlab("Number of current delinquencies") + ylab("Number of loans") + ggtitle("Histogram of current delinquencies")
+```
+
+```{r, include=FALSE}
+inquiries_6months_hist <- ggplot(loans, aes(InquiriesLast6Months)) + geom_histogram(binwidth=1.0, fill="#E69F00", colour="black") + xlim(-1,5)
+inquiries_6months_hist <- inquiries_6months_hist + xlab("Credit inquiries in last 6 months") + ylab("Number of loans") + ggtitle("Histogram of recent credit inquiries")
+```
+
+```{r, include=FALSE}
+current_credit_lines_hist <- ggplot(loans, aes(CurrentCreditLines)) + geom_histogram(binwidth=1.0, fill="#E69F00", colour="black") + xlim(0,30)
+current_credit_lines_hist <- current_credit_lines_hist + xlab("Current credit lines open") + ylab("Number of loans") + ggtitle("Histogram of current credit lines")
+```
+
+```{r, include=FALSE}
+revolving_payment_hist <- ggplot(loans, aes(OpenRevolvingMonthlyPayment)) + geom_histogram(binwidth=250, fill="#E69F00", colour="black") + xlim(0,2000)
+revolving_payment_hist <- revolving_payment_hist + xlab("Revolving monthly payment") + ylab("Number of loans") + ggtitle("Histogram of revolving monthly payment")
+```
+
+```{r, include=FALSE}
+avail_credit_hist <- ggplot(loans, aes(AvailableBankcardCredit)) + geom_histogram(binwidth=1000, fill="#E69F00", colour="black") + xlim(-500, 30000)
+avail_credit_hist <- avail_credit_hist + xlab("Available credit") + ylab("Number of loans") + ggtitle("Histogram of available credit")
+```
+
+```{r, include=FALSE}
+credit_util_hist <- ggplot(loans, aes(100.0 * BankcardUtilization)) + geom_histogram(binwidth=8, fill="#E69F00", colour="black") + xlim(0,100)
+credit_util_hist <- credit_util_hist + xlab("Credit utilization (%)") + ylab("Number of loans") + ggtitle("Histogram of credit utilization")
+```
+
+```{r, include=FALSE}
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+```
+
+We can plot multiple graphs in an array using [Winston Chang's `multiplot()`](http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/).
+
+```{r}
+multiplot(loan_amount_hist, loan_rate_hist, loan_income_hist, loan_credit_scores_hist, cols=2)
+```
+The median income of potential borrowers is pretty healthy at \$56,000/year. The median credit score is pretty close to 700, and in fact almost half (~47%) of the records have a credit score of 700 or higher. Mind, this is using the *lowest* credit score reported, as given by the variable ***CreditScoreRangeLower***. The median interest, at 18.4%, seems really high but since the loans are typically for relatively short terms (see below) it might turn out to be not too onerous on borrowers. A \$6,500 loan (the median amount requested) at 18.4% paid over 3 years [will pay about \$2,000 in interest in addition to the principal](http://www.bankrate.com/calculators/mortgages/loan-calculator.aspx?loanAmount=6500&years=3.000&terms=36&interestRate=18.400&loanStartDate=30+Dec+2016&show=false&showRt=true&prods=388&monthlyAdditionalAmount=0&yearlyAdditionalAmount=0&yearlyPaymentMonth=&oneTimeAdditionalPayment=0&oneTimeAdditionalPaymentInMY=&ic_id=mtg_loan_calc_calculate_btn).
+
+Variables related to credit utilization:
+```{r, echo=FALSE}
+multiplot(current_credit_lines_hist, revolving_payment_hist, avail_credit_hist, credit_util_hist,  cols=2)
+
+```
+
+Other variables of interest:
+```{r, echo=FALSE}
+multiplot(loans_terms_barplot, home_ownership_barplot, current_delinq_hist, inquiries_6months_hist, cols=2)
+```
+About 75% of loans are 3-year loans. Similarly, about 75% of applicants have no delinquencies on their current accounts, which we would expect, and about 75% of them have had their credit pulled two or fewer times in the last 6 months. Home ownership is evenly split among applicants.
+
+# Data munging
+## Response variable
+The response variable, ***LoanStatus***, has several outcomes:
+```{r}
+table(loans$LoanStatus)
+```
+We would like to use a binomial model, so we will label all the loans that are either "Completed" or "Current" with a '1' and loans that were charged off or in which the borrowed defaulted or is somehow late will be labelled with a '0'.
 ```{r}
 #Convert to character and back to factor
 #http://programming-r-pro-bro.blogspot.com/2013/04/editingadding-factor-levels-in-r.html
 loans$LoanStatus <- as.character(loans$LoanStatus)
 #Usage of grepl to test if sub-string in string
 #http://stackoverflow.com/questions/10128617/test-if-characters-in-string-in-r
-loans$LoanStatus[loans$LoanStatus == "Cancelled" | loans$LoanStatus == "Chargedoff" | loans$LoanStatus == "Defaulted" | loans$LoanStatus == "Chargedoff" | grepl("Past Due", loans$LoanStatus)] <- "0"
+loans$LoanStatus[loans$LoanStatus == "Cancelled" | loans$LoanStatus == "Chargedoff" | loans$LoanStatus == "Defaulted" | grepl("Past Due", loans$LoanStatus)] <- "0"
 loans$LoanStatus[loans$LoanStatus == "Completed" | loans$LoanStatus == "Current" | loans$LoanStatus == "FinalPaymentInProgress" ] <- "1"
 loans$LoanStatus <- as.factor(loans$LoanStatus)
 table(loans$LoanStatus)
 ```
-```{r}
+About 83% of the loans are in good status.
+
+## Predictors
+We will base our choice of predictors based on several factors. One is our familiarity with the data, e.g., we expect income and credit score to be good predictors of a borrower's ability to repay a loan. We will leave out predictors that are likely to be heavily correlated with another we did include, e.g., take *CreditScoreRangeLower* and leave out *CreditScoreRangeUpper*. We will also leave out predictors we are not familiar with, e.g. [trades](http://forum.lendacademy.com/index.php/topic,4223.msg39068.html).
+
+We will use the following predictors:
+
+***Term***, the length of the loan: 12, 36, or 60 months
+
+***BorrowerRate***, the interest rate of the loan
+
+***CreditScoreRangeLower***, the borrower's lowest reported credit score
+
+***DebtToIncomeRatio***, self-explanatory
+
+***EmploymentStatusDuration***, how long has the borrower been at his current employment, in months
+
+***IsBorrowerHomeowner***, self-explanatory, true or false
+
+***CurrentCreditLines***, number of current credit lines at the time the credit profile was pulled.
+
+***TotalCreditLinespast7years***, number of credit lines in the past seven years at the time the credit profile was pulled.
+
+***OpenRevolvingAccounts***, number of borrower's open accounts
+
+***OpenRevolvingMonthlyPayment***, total monthly payment on open accounts
+
+***InquiriesLast6Months***, number of credit inquiries in the last 6 months
+
+***TotalInquiries***, total number of credit inquiries (all-time?)
+
+***CurrentDelinquencies***, number of accounts delinquent at the time the credit profile was pulled
+
+***AmountDelinquent***, total current dollar amount of delinquencies
+
+***DelinquenciesLast7Years***, number of deliquencies in the last 7 years
+
+***PublicRecordsLast10Years***, number of [public records](https://www.creditkarma.com/article/public-records-on-credit-report) in the last 10 years
+
+***PublicRecordsLast12Months***, number of public records in the last year
+
+***RevolvingCreditBalance***, total dollar amount carried from one month to the next
+
+***BankcardUtilization***, the percentage of available revolving credit that is utilized
+
+***AvailableBankcardCredit***, total available credit via credit cards
+
+***IncomeVerifiable***, whether borrower stated he/she had evidence to support the stated income
+
+***StatedMonthlyIncome***, the borrower's monthly income
+
+Some of these predictors have missing data, several thousand of them in some cases. Rather than ignoring them, we try to impute them simply by sampling. I also tried the [mice](https://cran.r-project.org/web/packages/mice/mice.pdf) library, but it takes several minutes to run on a dataset as large as this one, even when I used [the method 'norm '](http://stats.stackexchange.com/questions/209811/how-to-improve-running-time-for-r-mice-data-imputation).
+
+```{r, echo=TRUE}
+#Replacing NA's in CreditScoreRangeLower:
+#Getting number of NA's
+num_NA <- length(loans$CreditScoreRangeLower[is.na(loans$CreditScoreRangeLower)])
+#Sampling CreditScoreRangeLower
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$CreditScoreRangeLower[!is.na(loans$CreditScoreRangeLower)], size=num_NA)
+#Replace
+loans$CreditScoreRangeLower[is.na(loans$CreditScoreRangeLower)] <- sample_vector
+```
+
+We can do similarly for the other predictors that have missing data. It's pretty repetitive, so it will not be shown here.
+```{r, include=FALSE}
+#Replacing NA's in InquiriesLast6Months:
+#Getting number of NA's
+num_NA <- length(loans$InquiriesLast6Months[is.na(loans$InquiriesLast6Months)])
+#Sampling InquiriesLast6Months
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$InquiriesLast6Months[!is.na(loans$InquiriesLast6Months)], size=num_NA)
+#Replace
+loans$InquiriesLast6Months[is.na(loans$InquiriesLast6Months)] <- sample_vector
+
+#Replacing NA's in TotalInquiries:
+#Getting number of NA's
+num_NA <- length(loans$TotalInquiries[is.na(loans$TotalInquiries)])
+#Sampling TotalInquiries
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$TotalInquiries[!is.na(loans$TotalInquiries)], size=num_NA)
+#Replace
+loans$TotalInquiries[is.na(loans$TotalInquiries)] <- sample_vector
+
+#Replacing NA's in DebtToIncomeRatio:
+#Getting number of NA's
+num_NA <- length(loans$DebtToIncomeRatio[is.na(loans$DebtToIncomeRatio)])
+#Sampling DebtToIncomeRatio
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$DebtToIncomeRatio[!is.na(loans$DebtToIncomeRatio)], size=num_NA)
+#Replace
+loans$DebtToIncomeRatio[is.na(loans$DebtToIncomeRatio)] <- sample_vector
+
+#Replacing NA's in EmploymentStatusDuration:
+#Getting number of NA's
+num_NA <- length(loans$EmploymentStatusDuration[is.na(loans$EmploymentStatusDuration)])
+#Sampling EmploymentStatusDuration
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$EmploymentStatusDuration[!is.na(loans$EmploymentStatusDuration)], size=num_NA)
+#Replace
+loans$EmploymentStatusDuration[is.na(loans$EmploymentStatusDuration)] <- sample_vector
+
+#Replacing NA's in CurrentCreditLines:
+#Getting number of NA's
+num_NA <- length(loans$CurrentCreditLines[is.na(loans$CurrentCreditLines)])
+#Sampling CurrentCreditLines
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$CurrentCreditLines[!is.na(loans$CurrentCreditLines)], size=num_NA)
+#Replace
+loans$CurrentCreditLines[is.na(loans$CurrentCreditLines)] <- sample_vector
+
+#Replacing NA's in TotalCreditLinespast7years:
+#Getting number of NA's
+num_NA <- length(loans$TotalCreditLinespast7years[is.na(loans$TotalCreditLinespast7years)])
+#Sampling TotalCreditLinespast7years
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$TotalCreditLinespast7years[!is.na(loans$TotalCreditLinespast7years)], size=num_NA)
+#Replace
+loans$TotalCreditLinespast7years[is.na(loans$TotalCreditLinespast7years)] <- sample_vector
+
+#Replacing NA's in CurrentDelinquencies:
+#Getting number of NA's
+num_NA <- length(loans$CurrentDelinquencies[is.na(loans$CurrentDelinquencies)])
+#Sampling CurrentDelinquencies
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$CurrentDelinquencies[!is.na(loans$CurrentDelinquencies)], size=num_NA)
+#Replace
+loans$CurrentDelinquencies[is.na(loans$CurrentDelinquencies)] <- sample_vector
+
+#Replacing NA's in AmountDelinquent:
+#Getting number of NA's
+num_NA <- length(loans$AmountDelinquent[is.na(loans$AmountDelinquent)])
+#Sampling AmountDelinquent
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$AmountDelinquent[!is.na(loans$AmountDelinquent)], size=num_NA)
+#Replace
+loans$AmountDelinquent[is.na(loans$AmountDelinquent)] <- sample_vector
+
+#Replacing NA's in DelinquenciesLast7Years:
+#Getting number of NA's
+num_NA <- length(loans$DelinquenciesLast7Years[is.na(loans$DelinquenciesLast7Years)])
+#Sampling DelinquenciesLast7Years
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$DelinquenciesLast7Years[!is.na(loans$DelinquenciesLast7Years)], size=num_NA)
+#Replace
+loans$DelinquenciesLast7Years[is.na(loans$DelinquenciesLast7Years)] <- sample_vector
+
+#Replacing NA's in PublicRecordsLast10Years:
+#Getting number of NA's
+num_NA <- length(loans$PublicRecordsLast10Years[is.na(loans$PublicRecordsLast10Years)])
+#Sampling PublicRecordsLast10Years
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$PublicRecordsLast10Years[!is.na(loans$PublicRecordsLast10Years)], size=num_NA)
+#Replace
+loans$PublicRecordsLast10Years[is.na(loans$PublicRecordsLast10Years)] <- sample_vector
+
+#Replacing NA's in PublicRecordsLast12Months:
+#Getting number of NA's
+num_NA <- length(loans$PublicRecordsLast12Months[is.na(loans$PublicRecordsLast12Months)])
+#Sampling PublicRecordsLast12Months
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$PublicRecordsLast12Months[!is.na(loans$PublicRecordsLast12Months)], size=num_NA)
+#Replace
+loans$PublicRecordsLast12Months[is.na(loans$PublicRecordsLast12Months)] <- sample_vector
+
+#Replacing NA's in RevolvingCreditBalance:
+#Getting number of NA's
+num_NA <- length(loans$RevolvingCreditBalance[is.na(loans$RevolvingCreditBalance)])
+#Sampling RevolvingCreditBalance
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$RevolvingCreditBalance[!is.na(loans$RevolvingCreditBalance)], size=num_NA)
+#Replace
+loans$RevolvingCreditBalance[is.na(loans$RevolvingCreditBalance)] <- sample_vector
+
+#Replacing NA's in BankcardUtilization:
+#Getting number of NA's
+num_NA <- length(loans$BankcardUtilization[is.na(loans$BankcardUtilization)])
+#Sampling BankcardUtilization
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$BankcardUtilization[!is.na(loans$BankcardUtilization)], size=num_NA)
+#Replace
+loans$BankcardUtilization[is.na(loans$BankcardUtilization)] <- sample_vector
+
+#Replacing NA's in AvailableBankcardCredit:
+#Getting number of NA's
+num_NA <- length(loans$AvailableBankcardCredit[is.na(loans$AvailableBankcardCredit)])
+#Sampling AvailableBankcardCredit
+set.seed(123)#reproducibility
+sample_vector <- sample(x=loans$AvailableBankcardCredit[!is.na(loans$AvailableBankcardCredit)], size=num_NA)
+#Replace
+loans$AvailableBankcardCredit[is.na(loans$AvailableBankcardCredit)] <- sample_vector
+```
+
+
+```{r, eval=FALSE, include=FALSE}
 predictors <- colnames(loans)
 predictors <- predictors[predictors != "LoanStatus"]
-for (predictor in c("Term", "BorrowerRate", "CreditScoreRangeLower", "DebtToIncomeRatio", "EmploymentStatusDuration", "IsBorrowerHomeowner", "CurrentCreditLines", "OpenCreditLines", "TotalCreditLinespast7years", "OpenRevolvingAccounts", "OpenRevolvingMonthlyPayment", "InquiriesLast6Months", "TotalInquiries", "CurrentDelinquencies", "AmountDelinquent", "DelinquenciesLast7Years", "PublicRecordsLast10Years", "PublicRecordsLast12Months", "RevolvingCreditBalance", "BankcardUtilization", "AvailableBankcardCredit", "IncomeVerifiable", "StatedMonthlyIncome")) {
+for (predictor in c("Term", "BorrowerRate", "CreditScoreRangeLower", "DebtToIncomeRatio", "EmploymentStatusDuration", "IsBorrowerHomeowner", "CurrentCreditLines", "TotalCreditLinespast7years", "OpenRevolvingAccounts", "OpenRevolvingMonthlyPayment", "InquiriesLast6Months", "TotalInquiries", "CurrentDelinquencies", "AmountDelinquent", "DelinquenciesLast7Years", "PublicRecordsLast10Years", "PublicRecordsLast12Months", "RevolvingCreditBalance", "BankcardUtilization", "AvailableBankcardCredit", "IncomeVerifiable", "StatedMonthlyIncome")) {
   log_model <- glm(loans$LoanStatus ~ loans[predictor][,1], family = binomial)
-  cat(paste("Significance level of predictor", predictor, summary(log_model)$coefficients[2,4], "\n"))
+  cat(paste("Significance level of predictor", predictor, summary(log_model)$coefficients[,4], "\n"))
 }
 #loans_log_model_1 <- glm(LoanStatus ~ CreditScoreRangeLower, data=loans)
 #summary(loans_log_model_1)
 ```
+# Building the logistic regression model
+## First, a little more data munging
+
+We can try to see what happens if we ask R to generate the logistic regression model using `glm()`.
+```{r}
+predictors_vector <- c("Term", "BorrowerRate", "CreditScoreRangeLower", "DebtToIncomeRatio", "EmploymentStatusDuration", "IsBorrowerHomeowner", "CurrentCreditLines", "TotalCreditLinespast7years", "OpenRevolvingAccounts", "OpenRevolvingMonthlyPayment", "InquiriesLast6Months", "TotalInquiries", "CurrentDelinquencies", "AmountDelinquent", "DelinquenciesLast7Years", "PublicRecordsLast10Years", "PublicRecordsLast12Months", "RevolvingCreditBalance", "BankcardUtilization", "AvailableBankcardCredit", "IncomeVerifiable", "StatedMonthlyIncome")
+
+predictors_vector_sum <- paste(predictors_vector, collapse="+")
+
+logReg_model_fmla <- as.formula(paste("LoanStatus ~ ", predictors_vector_sum))
+logReg_model <- glm(logReg_model_fmla, data=loans, family=binomial)
+
+```
 
 
+R returns a warning: glm.fit: fitted probabilities numerically 0 or 1 occurred. This has to do with [being able to perfectly separate the response based on the value of the predictors](https://stat.ethz.ch/pipermail/r-help/2008-March/156868.html). In fact, if we try to generate a model using just the predictor ***StatedMonthlyIncome***, we get the same warning.
+```{r}
+temp_model <- summary(glm(LoanStatus ~ StatedMonthlyIncome, data=loans, family=binomial))
+```
 
+Among the [possible solutions to this issue](http://stats.stackexchange.com/questions/11109/how-to-deal-with-perfect-separation-in-logistic-regression), binning the predictor values seems like the easiest thing to do.
+
+Let's start with ***StatedMonthlyIncome***. 
+We can try to split *StatedMonthlyIncome* into $1,000 bins using `cut()`.
+```{r}
+Monthly_Income_Ranges <- c("$0 - $1,999", "$2,000 - $2,999", "$3,000 - $3,999", "$4,000 - $4,999", "$5,000 - $5,999", "$6,000 - $6,999", "$7,000 - $7,999", "$8,000 - $8,999", "$9,000 - $9,999", "$10,000 - $10,999", "$11,000 - $11,999", "$12,000 - $12,999", "$13,000 - $13,999", "$14,000 - $14,999", "$15,000 or more")
+loans$StatedMonthlyIncome <- cut(loans$StatedMonthlyIncome, c(-Inf, seq(2000,15000,1000), Inf), labels=Monthly_Income_Ranges, right=F)
+```
+We can bin other variables as well. I will skip the actual code since it's very similar to what we just did for ***StatedMotnhlyIncome***. The following variables will be binned: ***InquiriesLast6Months***, ***TotalInquiries***, ***CurrentDelinquencies***, ***AmountDelinquent***, ***DelinquenciesLast7Years***, ***PublicRecordsLast10Years***, and ***PublicRecordsLast12Months***.
+
+```{r, include=FALSE}
+InquiriesLast6Months_Bins <- c("0", "1", "2", "3", "4", "5 or more")
+loans$InquiriesLast6Months <- cut(loans$InquiriesLast6Months, c(-Inf, seq(1,5,1), Inf), labels=InquiriesLast6Months_Bins, right=F)
+```
+
+```{r, include=FALSE}
+TotalInquiries_Bins <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10 or more")
+loans$TotalInquiries <- cut(loans$TotalInquiries, c(-Inf, seq(1,10,1), Inf), labels=TotalInquiries_Bins, right=F)
+```
+
+```{r, include=FALSE}
+CurrentDelinquencies_Bins <- c("0", "1", "2", "3 or more")
+loans$CurrentDelinquencies <- cut(loans$CurrentDelinquencies, c(-Inf, seq(1,3,1), Inf), labels=CurrentDelinquencies_Bins, right=F)
+```
+
+```{r, include=FALSE}
+#Making it boolean, since ~80% borrowers have no deliquent amounts
+loans$AmountDelinquent <- as.logical(loans$AmountDelinquent)
+```
+
+```{r, include=FALSE}
+DelinquenciesLast7Years_Bins <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10 or more")
+loans$DelinquenciesLast7Years <- cut(loans$DelinquenciesLast7Years, c(-Inf, seq(1,10,1), Inf), labels=DelinquenciesLast7Years_Bins, right=F)
+```
+
+```{r, include=FALSE}
+PublicRecordsLast10Years_Bins <- c("0", "1", "2 or more")
+loans$PublicRecordsLast10Years <- cut(loans$PublicRecordsLast10Years, c(-Inf, seq(1,2,1), Inf), labels=PublicRecordsLast10Years_Bins, right=F)
+```
+
+```{r, include=FALSE}
+#Also making it boolean
+loans$PublicRecordsLast12Months <- as.logical(loans$PublicRecordsLast12Months)
+```
+We can try again:
+```{r}
+logReg_model <- glm(logReg_model_fmla, data=loans, family=binomial)
+```
+We no longer get the glm.fit warning.
+
+Using `summary(logReg_model)`, we note that some of the predictors were found to be not [statistically significant](https://www.coursera.org/learn/linear-regression-model) in determining the probability of a loan being repaid. These were ***PublicRecordsLast12Months***, ***AmountDelinquent***, ***TotalCreditLinespast7years***, and ***DelinquenciesLast7Years***. This might have been because they are related to other predictors in the model and thus add little of value to it. Let's remove them from our model formula:
+
+```{r}
+remove_predictors <- c ("PublicRecordsLast12Months", "AmountDelinquent", "TotalCreditLinespast7years", "DelinquenciesLast7Years")
+predictors_vector <- setdiff(predictors_vector, remove_predictors)
+predictors_vector_sum <- paste(predictors_vector, collapse="+")
+logReg_model_fmla <- as.formula(paste("LoanStatus ~ ", predictors_vector_sum))
+```
+
+
+## Training and testing the model
+### Splitting the dataset into training and testing sets
+Let's [split the data into training and test sets](https://www.edx.org/course/analytics-edge-mitx-15-071x-2), using the library `caTools()`
+```{r, warning=FALSE}
+library(caTools)
+set.seed(144)
+spl = sample.split(loans$LoanStatus, 0.7)
+train_set = subset(loans, spl == TRUE)
+test_set = subset(loans, spl == FALSE)
+```
+### Confusion matrix and model accuracy
+Training the model on the split dataset, we can tabulate the confusion matrix by evaluating the model performance on the test set, using a threshold for labelling the loans of 0.5:
+```{r}
+logReg_model <- glm(logReg_model_fmla, data=train_set, family=binomial)
+# Evaluate the performance on test dataset
+# test_set$predicted.risk is a vector of probabilities
+# According to our model, the higher the probability the more likely the loan will be good
+test_set$predicted.risk = predict(logReg_model, newdata=test_set, type="response")
+#Confusion Matrix using a threshold of 0.5
+threshold = 0.5
+confusion_matrix <- table(test_set$LoanStatus, as.numeric(test_set$predicted.risk >= threshold))
+confusion_matrix
+```
+The rows in the confusion matrix represent the "truth". We have `r confusion_matrix[1,1]` + `r confusion_matrix[1,2]` = `r sum(confusion_matrix[1,1] + confusion_matrix[1,2])` total bad loans, of which `r confusion_matrix[1,2]` were labelled, incorrectly, as good loans. That's over 80% of the bad loans that were labelled as good. This is our False Positive Rat, or FPR. Similarly, there are `r confusion_matrix[2,1]` + `r confusion_matrix[2,2]` = `r sum(confusion_matrix[2,1] + confusion_matrix[2,2])` total good loans, of which `r confusion_matrix[2,2]` were labelled, correctly, as good loans. Over 97% of the good loans were labelled correctly. This is our True Positive Rate, or TPR. We will see shortly how the choice of threshold allows us to trade FPR with TPR.
+
+Using the confusion matrix, we can compute the accuracy of our model on the test set as the ratio of loans that were labelled correctly divided by the total number of loans. Here we have `r confusion_matrix[1,1]` + `r confusion_matrix[2,2]` = `r sum(confusion_matrix[1,1] + confusion_matrix[2,2])` loans that were labelled correctly, out of a total of `r sum(confusion_matrix)` loans in the test set, so the accuracy is `r sum(confusion_matrix[1,1] + confusion_matrix[2,2]) / sum(confusion_matrix)`.
+
+### ROC curve and AUC
+The ROC (Receiver Operator Characteristic) curve plots the True Positive Rate (TPR) versus the False Positive Rate (FPR). The TPR is the fraction of good loans in the test set that were labelled correctly (1), whereas the FPR is the fraction of bad loans that were labelled, incorrectly, as good. It allows us to visualize how the choice of threshold allows us to trade off TPR with FPR.
+```{r, warning=FALSE}
+library(ROCR)
+ROCRpred = prediction(test_set$predicted.risk, test_set$LoanStatus)
+
+# Performance function
+ROCRperf = performance(ROCRpred, "tpr", "fpr")
+# Plot ROC curve
+plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
+grid()
+```
+We can compute the area under the ROC curve, or AUC:
+```{r}
+#AUC
+AUC <- as.numeric(performance(ROCRpred, "auc")@y.values)
+AUC
+```
+We want the AUC to be significantly larger than 0.5.
+
+### Exploring different thresholds
+
+We can see that using a threshold of 0.5 to label the loans would just about "catch" all the good loans since the TPR is almost 1.0, but it also means we have to eat more than 80% of the bad loans. A choice of threshold of 0.8 or even 0.7 would lead to catching 80% or more of the good loans while discarding between 40% and 60% of the bad ones Let's try using a threshold of 0.8:
+
+```{r}
+threshold2 = 0.8
+confusion_matrix2 <- table(test_set$LoanStatus, as.numeric(test_set$predicted.risk >= threshold2))
+confusion_matrix2
+```
+We can see that choosing a threshold of 0.8 means we would pass on, i.e., not invest in, `r confusion_matrix2[2,1]` good loans. Our TPR is lower: 79%, versus more than 97% with a threshold of 0.5. However, the FPR is much better now, as we are only mislabelling ~40% of the bad loans, versus more than 80% with the 0.5 threshold. Although our accuracy has dropped from 84% to about 75%, I think using a threshold of 0.8 or 0.7 is preferable to using 0.5.
+
+# Cross-validation
+We can use the `caret` package to perform k-fold cross-validation. The data is split in *k* folds and the model is generated using *k-1* folds of the data as a training set, and tested on the remaining fold. This is done *k* times, once for each fold. `caret` computes and reports the accuracy of the model each time. We can compare the accuracies with the 70-30 split of the data we did earlier.
+
+For logistic regression, `caret` uses a hardwired threshold of 0.5 to compute the accuracy. Although we cannot change it, we can cross-check the accuracy numbers it reports with what we got earlier using a threshold of 0.5.
+
+[Experience has shown](https://www.amazon.com/Data-Mining-Practical-Techniques-Management/dp/0123748569) that 10-fold cross-validation gives the best estimate of error, so we will use *k=10* folds.
+```{r, message=FALSE, warning=FALSE}
+library(caret)
+fitControl = trainControl( method = "cv", number = 10, p = 0.70 )
+logReg_model_cv <- train(logReg_model_fmla, data=train_set, method = "bayesglm", trControl = fitControl)
+logReg_model_cv$resample$Accuracy
+```
+We see that the model accuracy is about 84% each time, which matches what we did earlier using a 0.5 threshold.
 
 # References
 
@@ -131,3 +560,19 @@ for (predictor in c("Term", "BorrowerRate", "CreditScoreRangeLower", "DebtToInco
 8. mike and smu. ***Test if characters in string in R***. Retrieved from [http://stackoverflow.com](http://stackoverflow.com/questions/10128617/test-if-characters-in-string-in-r).
 
 9. Shreyes. ***Editing/Adding factor levels in R***. Retrieved from [http://programming-r-pro-bro.blogspot.com](http://programming-r-pro-bro.blogspot.com/2013/04/editingadding-factor-levels-in-r.html)
+
+10. Harding, Ted. ***glm.fit: fitted probabilities numerically 0 or 1 occurr***. Retrieved from [https://stat.ethz.ch](https://stat.ethz.ch/pipermail/r-help/2008-March/156868.html)
+
+11. user333 and Scortchi. ***How to deal with perfect separation in logistic regression?*** Retrieved from [http://stats.stackexchange.com](http://stats.stackexchange.com/questions/11109/how-to-deal-with-perfect-separation-in-logistic-regression)
+
+12. grautur and juba. ***how to succinctly write a formula with many variables from a data frame?*** Retrieved from [http://stackoverflow.com](http://stackoverflow.com/questions/5251507/how-to-succinctly-write-a-formula-with-many-variables-from-a-data-frame).
+
+13. Bertsimas, D., O'Hair, A. ***The Analytics Edge***. Spring 2014. [edX.org](www.edX.org).
+
+14. jeannot and Luciano Selzer. ***How to change the default font size in ggplot2***. Retrieved from [http://stackoverflow.com](http://stackoverflow.com/questions/11955229/how-to-change-the-default-font-size-in-ggplot2).
+
+15. Dail and Brian Diggs. ***How to delete multiple values from a vector?***. Retrieved from [http://stackoverflow.com](http://stackoverflow.com/questions/9665984/how-to-delete-multiple-values-from-a-vector).
+
+16. Witten, I., Frank, E., Hall, M. ***Data Mining: Practical Machine Learning Tools and Techniques, Third Edition***. Burlington: Elsevier, 2011. PDF.
+
+17. Çetinkaya-Rundel, M. ***Data Analysis and Statistical Inference***. Spring 2014. [www.coursera.org](www.coursera.org).
