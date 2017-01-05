@@ -9,6 +9,9 @@ I would like to come up with an investing strategy for [Prosper](http://www.pros
 #Data Source
 The data was offered by [Udacity](http://www.udacity.com) for a project in one of their courses. You can find it [here](https://docs.google.com/document/d/1qEcwltBMlRYZT-l699-71TzInWfk4W9q5rTCSvDVMpc/pub?embedded=true) or [here](https://github.com/joashxu/prosper-loan-data/tree/master/dataset). Although I did not take the course myself, I find the data very useful, indeed, and am very grateful to Udacity for making it available!
 
+## Github repository
+The Prosper dataset and the R notebook are [here](https://github.com/carlosror/prosper_loans).
+
 #Data exploration
 Going through the dataset dictionary [here](https://github.com/joashxu/prosper-loan-data/tree/master/dataset) or [here](https://docs.google.com/spreadsheets/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit#gid=0), I want to better acquaint myself with the data, since I have never either borrowed or lent on a peer-to-peer lending platform.
 <br/>  
